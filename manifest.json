@@ -1,0 +1,38 @@
+{
+  "name": "AgriWatch Pro — 農產品看盤",
+  "short_name": "AgriWatch",
+  "description": "農產品期貨即時看盤：玉米、黃豆、小麥、咖啡等 OHLC 技術圖表",
+  "start_url": "./agri_pro_v4.html",
+  "display": "standalone",
+  "background_color": "#07090c",
+  "theme_color": "#0d1117",
+  "orientation": "landscape-primary",
+  "lang": "zh-TW",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='24' fill='%230d1117'/><text x='96' y='130' font-size='100' text-anchor='middle' fill='%232d6db5' font-family='monospace' font-weight='900'>A</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='64' fill='%230d1117'/><text x='256' y='360' font-size='280' text-anchor='middle' fill='%232d6db5' font-family='monospace' font-weight='900'>A</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["finance", "business"],
+  "shortcuts": [
+    {
+      "name": "玉米行情",
+      "short_name": "ZC玉米",
+      "url": "./agri_pro_v4.html?sym=ZC=F",
+      "description": "開啟玉米期貨行情"
+    },
+    {
+      "name": "黃金行情",
+      "short_name": "GC黃金",
+      "url": "./agri_pro_v4.html?sym=GC=F",
+      "description": "開啟黃金期貨行情"
+    }
+  ]
+}

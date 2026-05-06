@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AgriWatch">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="農產品期貨看盤 — 玉米、黃豆、小麥、咖啡等即時報價與技術分析">
+<link rel="manifest" href="manifest.json">
+<title>AgriWatch Pro</title>
+<!-- TradingView Lightweight Charts（K線縮放卷動）-->
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fn:'Microsoft JhengHei','微軟正黑體','Noto Sans HK',sans-serif;
+  --fnum:'Noto Sans HK',sans-serif;
+  --fmono:'Consolas','Courier New',monospace;
+  --bg:#07090c;--bg2:#0d1117;--bg3:#161b22;--bg4:#1c2330;
+  --bd:#21262d;--bd2:#30363d;
+  --tx:#e6edf3;--tx2:#8b949e;--tx3:#484f58;
+  --g:#f85149;--r:#3fb950;--y:#f0c644;--b:#388bfd;--c:#58a6ff;
+  --act-bg:#1a3a5c;--act-bd:#2d6db5;--act-tx:#a8d4ff;--act-shadow:0 2px 6px rgba(45,109,181,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--tx);font-family:var(--fn);font-size:12px;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+/* ── 顏色 ── */
+.up{color:var(--g)}.dn{color:var(--r)}.fl{color:var(--tx3)}
+
+/* ── 新頂端選單列（分類+商品+報價，兩行）── */
+#r-nav{background:var(--bg2);border-bottom:1px solid var(--bd);flex-shrink:0}
+/* 第一行：分類標籤 */
+#r-cats{display:flex;align-items:center;padding:5px 10px;gap:2px;border-bottom:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+#r-cats::-webkit-scrollbar{display:none}
+.cat-pill{padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;font-family:var(--fn);color:var(--tx2);cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid transparent}
+.cat-pill:hover{color:var(--tx);border-color:var(--act-bd);background:rgba(45,109,181,.1)}
+.cat-pill.on{background:var(--act-bg);color:var(--act-tx);border-color:var(--act-bd);font-weight:700;box-shadow:var(--act-shadow);text-shadow:0 0 8px rgba(168,212,255,.3)}
+.cat-sep-v{width:1px;height:14px;background:var(--bd2);margin:0 4px;flex-shrink:0}
+/* 第二行：商品按鈕 */
+#r-syms{display:flex;align-items:center;padding:6px 10px;gap:5px;overflow-x:auto;scrollbar-width:none;min-height:52px}
+#r-syms::-webkit-scrollbar{display:none}
+.sym-btn{display:inline-flex;flex-direction:column;align-items:flex-start;padding:5px 11px;border-radius:6px;border:1px solid var(--bd);cursor:pointer;transition:all .15s;flex-shrink:0;background:var(--bg3);min-width:78px}
+.sym-btn:hover{border-color:var(--act-bd);background:rgba(45,109,181,.1);transform:translateY(-1px)}
+.sym-btn.active{border-color:var(--act-bd);background:var(--act-bg);box-shadow:var(--act-shadow),inset 0 1px 0 rgba(168,212,255,.15);transform:translateY(-1px)}
+.sym-btn-top{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--tx);white-space:nowrap;line-height:1.3}
+.sym-btn-bot{display:flex;align-items:center;gap:4px;margin-top:1px}
+.sym-price{font-family:var(--fnum);font-size:12px;font-weight:900;color:var(--tx)}
+.sym-chg{font-family:var(--fnum);font-size:10px;font-weight:700}
+.ic-badge{font-family:var(--fmono);font-size:9px;font-weight:700;color:var(--tx3);background:var(--bg4);padding:1px 4px;border-radius:2px;border:1px solid var(--bd2);letter-spacing:0;line-height:1.2;flex-shrink:0}
+.sym-btn.active .ic-badge{color:var(--act-tx);background:rgba(45,109,181,.2);border-color:var(--act-bd)}
+
+/* ── TOPBAR ── */
+#r-topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 14px;gap:8px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+#r-topbar::-webkit-scrollbar{display:none}
+.logo{font-family:var(--fmono);font-size:12px;font-weight:700;color:var(--y);letter-spacing:2px;flex-shrink:0}
+.logo span{color:var(--tx3);font-weight:300}
+#qh-name{font-family:var(--fn);font-size:18px;font-weight:700;flex-shrink:0;white-space:nowrap;letter-spacing:.3px}
+#qh-price{font-family:var(--fnum);font-size:26px;font-weight:900;line-height:1;flex-shrink:0}
+#qh-chg{font-family:var(--fnum);font-size:13px;font-weight:700;padding:3px 10px;border-radius:4px;flex-shrink:0}
+#qh-chg.up{background:rgba(248,81,73,.15);color:var(--g)}
+#qh-chg.dn{background:rgba(63,185,80,.15);color:var(--r)}
+.qh-sep{width:1px;height:26px;background:var(--bd2);margin:0 4px;flex-shrink:0}
+.qh-kv{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.qh-k{font-size:8px;color:var(--tx3);font-family:var(--fmono);text-transform:uppercase;white-space:nowrap}
+.qh-v{font-family:var(--fnum);font-size:12px;font-weight:700;white-space:nowrap}
+.tsp{flex:1;min-width:8px}
+#clock{font-family:var(--fmono);font-size:10px;color:var(--tx2);flex-shrink:0}
+.mkt-b{font-size:9px;font-family:var(--fmono);padding:2px 8px;border-radius:3px;flex-shrink:0}
+.mkt-b.open{background:rgba(63,185,80,.15);color:var(--g)}
+.mkt-b.closed{background:rgba(72,79,88,.2);color:var(--tx3)}
+.hdr-btn{background:var(--bg3);border:1px solid var(--bd2);color:var(--tx2);padding:3px 10px;border-radius:4px;cursor:pointer;font-family:var(--fn);font-size:10px;transition:all .1s;flex-shrink:0;white-space:nowrap}
+.hdr-btn:hover{color:var(--act-tx);border-color:var(--act-bd);background:var(--act-bg)}
+
+/* ── WORKSPACE ── */
+#workspace{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* ── CENTER ── */
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;min-height:0}
+
+/* 合約列 */
+#r-contract{height:28px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:4px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+#r-contract::-webkit-scrollbar{display:none}
+.cr-lbl{font-size:9px;color:var(--tx3);font-family:var(--fmono);flex-shrink:0}
+.cr-btn{background:transparent;border:1px solid var(--bd);color:var(--tx3);padding:2px 9px;border-radius:3px;cursor:pointer;font-family:var(--fmono);font-size:9px;white-space:nowrap;transition:all .1s;flex-shrink:0}
+.cr-btn:hover{color:var(--tx);border-color:var(--bd2)}
+.cr-btn.active{background:var(--act-bg);border-color:var(--act-bd);color:var(--act-tx);font-weight:700;box-shadow:var(--act-shadow)}
+
+/* 圖表工具列 */
+#r-toolbar{height:34px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:5px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+#r-toolbar::-webkit-scrollbar{display:none}
+.tb-sep{width:1px;height:16px;background:var(--bd2);margin:0 3px;flex-shrink:0}
+.tb-lbl{font-size:9px;color:var(--tx3);font-family:var(--fmono);white-space:nowrap;flex-shrink:0}
+.tb-btn{background:transparent;border:1px solid transparent;color:var(--tx3);padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--fmono);font-size:10px;white-space:nowrap;transition:all .12s;flex-shrink:0}
+.tb-btn:hover{color:var(--tx);border-color:var(--bd)}
+.tb-btn.on{background:var(--bg4);border-color:var(--bd2);color:var(--tx)}
+.ct-btn{background:transparent;border:1px solid var(--bd);color:var(--tx3);padding:2px 9px;border-radius:3px;cursor:pointer;font-family:var(--fmono);font-size:10px;white-space:nowrap;transition:all .12s;flex-shrink:0}
+.ct-btn.on{background:rgba(88,166,255,.12);border-color:var(--c);color:var(--c)}
+.ct-btn:hover{border-color:var(--bd2);color:var(--tx)}
+.ma-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:3px;border:1px solid var(--bd);cursor:pointer;font-family:var(--fmono);font-size:9px;transition:all .12s;flex-shrink:0;white-space:nowrap}
+.ma-chip.on{border-color:var(--bd2);background:var(--bg4);color:var(--tx);font-weight:700;box-shadow:inset 0 -2px 0 var(--act-bd)}
+.ma-chip:hover{border-color:var(--bd2)}
+.ma-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sub-sel{background:var(--bg3);border:1px solid var(--bd2);color:var(--tx2);padding:2px 6px;border-radius:3px;font-family:var(--fmono);font-size:10px;cursor:pointer;outline:none;flex-shrink:0}
+.sub-sel:focus{border-color:var(--c)}
+.sub-sel option{background:var(--bg3)}
+
+/* 圖表主區 */
+#r-charts{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:6px 10px;gap:4px;min-height:0}
+.pane{position:relative;background:var(--bg);border:1px solid var(--bd);border-radius:4px;overflow:hidden;min-height:0}
+#pane-main{flex:1}
+#pane-sub1{flex:0 0 110px}
+#pane-sub2{flex:0 0 100px}
+.pane-lbl{position:absolute;top:4px;left:6px;font-family:var(--fmono);font-size:9px;color:var(--tx3);z-index:5;pointer-events:none;background:rgba(7,9,12,.8);padding:1px 6px;border-radius:2px;white-space:nowrap}
+
+/* 縮放控制 */
+.zoom-ctrl{position:absolute;top:4px;right:8px;display:flex;gap:3px;z-index:5}
+.zoom-btn{background:var(--bg3);border:1px solid var(--bd2);color:var(--tx2);width:20px;height:20px;border-radius:3px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .1s;line-height:1}
+.zoom-btn:hover{color:var(--act-tx);border-color:var(--act-bd);background:var(--act-bg)}
+
+/* sub chart canvas */
+.sub-canvas-wrap{position:relative;width:100%;height:100%;display:block}
+.sub-canvas-wrap canvas{display:block}
+
+/* ── RIGHT PANEL ── */
+#r-right{width:258px;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.rp-tabs{display:flex;border-bottom:1px solid var(--bd);flex-shrink:0}
+.rp-tab{flex:1;padding:8px 2px;text-align:center;font-size:12px;font-weight:600;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap;font-family:var(--fn)}
+.rp-tab.on{color:var(--act-tx);border-bottom-color:var(--act-bd);font-weight:700}
+.rp-tab:hover{color:var(--tx);background:rgba(45,109,181,.06)}
+#rp-body{flex:1;overflow-y:auto;padding:12px 14px}
+
+/* 右欄元件 */
+.ai-card{background:linear-gradient(135deg,rgba(45,109,181,.08),rgba(56,139,253,.04));border:1px solid rgba(45,109,181,.3);border-radius:6px;padding:10px;margin-bottom:10px}
+.ai-t{font-size:12px;font-weight:700;color:var(--act-tx);margin-bottom:6px}
+.ai-b{font-size:12px;line-height:1.8;color:var(--tx2)}
+.sig-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.sig{font-size:10px;font-weight:600;padding:2px 9px;border-radius:3px;font-family:var(--fn)}
+.sig.bull{background:rgba(248,81,73,.15);color:var(--g)}
+.sig.bear{background:rgba(63,185,80,.15);color:var(--r)}
+.sig.watch{background:rgba(240,198,68,.12);color:var(--y)}
+.sig.neutral{background:rgba(139,148,158,.1);color:var(--tx2)}
+.news-item{padding:8px 0;border-bottom:1px solid var(--bd);cursor:pointer;transition:background .1s}
+.news-item:last-child{border-bottom:none}
+.news-item:hover{background:rgba(45,109,181,.07);margin:0 -10px;padding:8px 10px;border-left:2px solid var(--act-bd)}
+.n-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:3px;margin-bottom:4px;display:inline-block;font-family:var(--fn)}
+.n-tag.bull{background:rgba(248,81,73,.15);color:var(--g)}
+.n-tag.bear{background:rgba(63,185,80,.15);color:var(--r)}
+.n-tag.neutral{background:rgba(139,148,158,.1);color:var(--tx2)}
+.n-title{font-size:12px;font-weight:500;line-height:1.55;color:var(--tx);margin-bottom:3px}
+.news-item:hover .n-title{color:var(--act-tx)}
+.n-time{font-size:9px;color:var(--tx3);font-family:var(--fmono)}
+.n-src{font-size:9px;color:var(--b);font-family:var(--fmono)}
+.open-link{font-size:9px;color:var(--c);float:right;padding:2px 6px;border:1px solid rgba(88,166,255,.3);border-radius:2px;font-family:var(--fmono);text-decoration:none;display:inline-block}
+.open-link:hover{background:rgba(88,166,255,.1);color:var(--c)}
+.wasde-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd);font-family:var(--fn);font-size:12px}
+.wasde-row:last-child{border-bottom:none}
+.wb{font-size:10px;font-weight:600;padding:2px 9px;border-radius:3px}
+.wb.soon{background:rgba(240,198,68,.15);color:var(--y)}
+.wb.today{background:rgba(248,81,73,.2);color:var(--r)}
+.wb.past{color:var(--tx3)}.wb.future{color:var(--tx2)}
+.psd-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bd);font-size:12px}
+.psd-row:last-child{border-bottom:none}
+.psd-k{color:var(--tx2);font-weight:500}.psd-v{font-family:var(--fnum);font-weight:900;color:var(--tx);font-size:12px}
+.sec{font-family:var(--fmono);font-size:10px;font-weight:700;color:var(--act-tx);letter-spacing:1.5px;text-transform:uppercase;margin:12px 0 7px;padding-bottom:5px;border-bottom:1px solid var(--act-bd)}
+.range-wrap{margin:8px 0}
+.range-lbs{display:flex;justify-content:space-between;font-family:var(--fnum);font-size:9px;font-weight:700;color:var(--tx3);margin-bottom:3px}
+.range-bar{height:5px;background:var(--bg4);border-radius:3px;position:relative;overflow:visible}
+.range-fill{height:100%;border-radius:3px;transition:width .5s}
+.range-mk{position:absolute;top:-4px;width:12px;height:12px;border-radius:50%;transform:translateX(-50%);transition:left .5s;border:2px solid var(--bg2)}
+
+/* 下載按鈕 */
+.dl-btn{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:4px;border:1px solid var(--bd2);background:var(--bg3);cursor:pointer;font-size:10px;color:var(--tx2);margin-bottom:6px;transition:all .1s;width:100%}
+.dl-btn:hover{border-color:var(--c);color:var(--c);background:rgba(88,166,255,.06)}
+
+/* MA Modal */
+#ma-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999}
+#ma-modal{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg3);border:1px solid var(--bd2);border-radius:8px;padding:18px;width:380px;z-index:1000;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.mm-t{font-size:14px;font-weight:700;color:var(--y);margin-bottom:14px;display:flex;justify-content:space-between}
+.mm-x{cursor:pointer;color:var(--tx3);font-size:16px}.mm-x:hover{color:var(--tx)}
+.mm-row{display:grid;grid-template-columns:32px 1fr 70px 40px 24px;align-items:center;gap:8px;margin-bottom:10px;padding:8px;background:var(--bg4);border-radius:4px}
+.mm-tog{width:36px;height:20px;border-radius:10px;border:1px solid var(--bd2);cursor:pointer;transition:all .2s;position:relative;background:var(--bg2)}
+.mm-tog.on{background:var(--g);border-color:var(--g)}
+.mm-tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+.mm-tog.on::after{left:18px}
+.mm-inp{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx);padding:4px 7px;border-radius:4px;font-family:var(--fnum);font-size:11px;font-weight:700;width:100%;outline:none}
+.mm-inp:focus{border-color:var(--y)}
+.mm-col{width:36px;height:24px;border:none;border-radius:3px;cursor:pointer;background:transparent}
+.mm-lbl{font-size:10px;color:var(--tx2)}
+.mm-btns{display:flex;gap:8px;margin-top:14px}
+.mm-ok{flex:1;background:var(--y);border:none;color:#000;padding:7px;border-radius:4px;font-family:var(--fn);font-size:11px;font-weight:700;cursor:pointer}
+.mm-cancel{background:var(--bg4);border:1px solid var(--bd2);color:var(--tx2);padding:7px 14px;border-radius:4px;font-family:var(--fn);font-size:11px;cursor:pointer}
+
+
+
+/* ══════════════════════════════════════════
+   手機響應式版面
+   ══════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* 隱藏右側分析欄，改為底部抽屜 */
+  #r-right { display:none }
+  #workspace { flex-direction: column }
+
+  /* 頂端報價列自動換行 */
+  #r-topbar {
+    height:auto; flex-wrap:wrap; padding:6px 10px; gap:5px;
+    overflow-x:visible;
+  }
+  #qh-name { font-size:14px; width:100%; margin-bottom:2px }
+  #qh-price { font-size:20px }
+  #qh-chg { font-size:11px }
+  .qh-kv { min-width:60px }
+  .qh-k { font-size:7px }
+  .qh-v { font-size:10px }
+  .tsp { display:none }
+  #clock { display:none }
+
+  /* 分類列縮小 */
+  .cat-pill { font-size:11px; padding:3px 10px }
+
+  /* 商品列縮小 */
+  .sym-btn { min-width:62px; padding:4px 8px }
+  .sym-btn-top { font-size:11px }
+  .sym-price { font-size:11px }
+
+  /* 合約列縮小 */
+  .cr-btn { font-size:9px; padding:2px 6px }
+
+  /* 工具列自動換行 */
+  #r-toolbar {
+    height:auto; flex-wrap:wrap; padding:4px 8px; gap:3px;
+  }
+  .ct-btn { font-size:9px; padding:2px 6px }
+  .sub-sel { font-size:9px }
+  .tb-sep { display:none }
+
+  /* 圖表區填滿 */
+  #center { flex:1; min-height:0 }
+  #r-charts { padding:4px 6px; gap:3px }
+  #pane-sub1 { flex:0 0 90px }
+  #pane-sub2 { flex:0 0 80px }
+
+  /* 縮放按鈕放大（手指好點） */
+  .zoom-btn { width:28px; height:28px; font-size:16px }
+
+  /* 底部分析抽屜 */
+  #mobile-drawer {
+    display:flex; flex-direction:column;
+    background:var(--bg2); border-top:1px solid var(--bd);
+    height:0; overflow:hidden; transition:height .3s ease;
+    flex-shrink:0;
+  }
+  #mobile-drawer.open { height:280px }
+  #mobile-drawer-tabs {
+    display:flex; border-bottom:1px solid var(--bd); flex-shrink:0;
+  }
+  .md-tab {
+    flex:1; padding:8px 4px; text-align:center; font-size:11px;
+    font-weight:600; color:var(--tx3); cursor:pointer;
+    border-bottom:2px solid transparent; font-family:var(--fn);
+  }
+  .md-tab.on { color:var(--act-tx); border-bottom-color:var(--act-bd) }
+  #mobile-drawer-body { flex:1; overflow-y:auto; padding:10px 12px }
+
+  /* 底部抽屜開關按鈕 */
+  #drawer-toggle {
+    display:flex; align-items:center; justify-content:center;
+    gap:6px; background:var(--bg2); border-top:1px solid var(--bd);
+    padding:6px; cursor:pointer; flex-shrink:0;
+    font-size:11px; color:var(--tx2); font-family:var(--fn);
+  }
+  #drawer-toggle:active { background:var(--bg3) }
+  .drawer-arrow { transition:transform .3s; font-size:14px }
+  #mobile-drawer.open + * .drawer-arrow,
+  .drawer-arrow.up { transform:rotate(180deg) }
+}
+
+@media (min-width: 769px) {
+  /* 桌面版隱藏手機元素 */
+  #mobile-drawer { display:none !important }
+  #drawer-toggle { display:none !important }
+}
+</style>
+</head>
+<body>
+
+<!-- 頂端選單：分類 + 商品 + 報價 -->
+<div id="r-nav">
+  <div id="r-cats"></div>
+  <div id="r-syms"></div>
+</div>
+
+<!-- TOPBAR + 報價 -->
+<div id="r-topbar">
+  <div class="logo">AGRI<span>WATCH</span></div>
+  <div class="qh-sep"></div>
+  <div id="qh-name">玉米 Corn — ZC=F</div>
+  <div id="qh-price" style="color:var(--g)">—</div>
+  <div id="qh-chg" class="up">—</div>
+  <span id="qh-unit" style="font-size:10px;color:var(--tx3);font-family:var(--fmono)">¢/bu</span>
+  <div class="qh-sep"></div>
+  <div class="qh-kv"><div class="qh-k">開盤</div><div class="qh-v" id="qh-o">—</div></div>
+  <div class="qh-kv"><div class="qh-k">最高</div><div class="qh-v" id="qh-h" style="color:var(--g)">—</div></div>
+  <div class="qh-kv"><div class="qh-k">最低</div><div class="qh-v" id="qh-l" style="color:var(--r)">—</div></div>
+  <div class="qh-kv"><div class="qh-k">成交量</div><div class="qh-v" id="qh-vol">—</div></div>
+  <div class="qh-kv"><div class="qh-k">未平倉</div><div class="qh-v" id="qh-oi">—</div></div>
+  <div class="qh-kv"><div class="qh-k">52W高</div><div class="qh-v" id="qh-52h">—</div></div>
+  <div class="qh-kv"><div class="qh-k">52W低</div><div class="qh-v" id="qh-52l">—</div></div>
+  <div class="tsp"></div>
+  <span class="mkt-b closed" id="mkt-b">盤後</span>
+  <span id="clock">—</span>
+  <button class="hdr-btn" onclick="saveData()">⬇ 儲存資料</button>
+  <button class="hdr-btn" onclick="refreshAll()">⟳ 刷新</button>
+</div>
+
+<!-- WORKSPACE -->
+<div id="workspace">
+  <div id="center">
+    <!-- 合約 -->
+    <div id="r-contract">
+      <span class="cr-lbl">合約：</span>
+      <div id="contracts"></div>
+    </div>
+    <!-- 工具列 -->
+    <div id="r-toolbar">
+      <span class="tb-lbl">週期</span>
+      <button class="tb-btn on" onclick="setPd('1D',this)">日</button>
+      <button class="tb-btn" onclick="setPd('1W',this)">週</button>
+      <button class="tb-btn" onclick="setPd('1M',this)">月</button>
+      <button class="tb-btn" onclick="setPd('3M',this)">季</button>
+      <button class="tb-btn" onclick="setPd('1Y',this)">年</button>
+      <div class="tb-sep"></div>
+      <span class="tb-lbl">主圖</span>
+      <button class="ct-btn on" id="btn-k" onclick="setChartType('kline',this)">K線</button>
+      <button class="ct-btn" id="btn-ohlc" onclick="setChartType('ohlc',this)">OHLC</button>
+      <button class="ct-btn" id="btn-l" onclick="setChartType('line',this)">收盤線</button>
+      <div class="tb-sep"></div>
+      <span class="tb-lbl">均線</span>
+      <div id="ma-chips"></div>
+      <button class="hdr-btn" style="font-size:9px;padding:2px 8px" onclick="openMaModal()">⚙ 設定</button>
+      <div class="tb-sep"></div>
+      <span class="tb-lbl">副圖1</span>
+      <select class="sub-sel" id="s1" onchange="rebuildSub(1)">
+        <option value="vol">成交量</option>
+        <option value="oi">未平倉量</option>
+        <option value="oi_chg">OI變化率%</option>
+        <option value="vol_chg">量變化率%</option>
+        <option value="rsi">RSI(14)</option>
+        <option value="macd">MACD</option>
+        <option value="atr">ATR(14)</option>
+        <option value="none">關閉</option>
+      </select>
+      <span class="tb-lbl">副圖2</span>
+      <select class="sub-sel" id="s2" onchange="rebuildSub(2)">
+        <option value="oi" selected>未平倉量</option>
+        <option value="vol">成交量</option>
+        <option value="oi_chg">OI變化率%</option>
+        <option value="vol_chg">量變化率%</option>
+        <option value="rsi">RSI(14)</option>
+        <option value="macd">MACD</option>
+        <option value="atr">ATR(14)</option>
+        <option value="none">關閉</option>
+      </select>
+    </div>
+
+    <!-- 圖表區 -->
+    <div id="r-charts">
+      <!-- 主圖（LightweightCharts）-->
+      <div class="pane" id="pane-main">
+        <div class="pane-lbl" id="lbl-main">主圖</div>
+        <div class="zoom-ctrl">
+          <div class="zoom-btn" onclick="zoomChart(1.3)" title="放大">+</div>
+          <div class="zoom-btn" onclick="zoomChart(0.7)" title="縮小">−</div>
+          <div class="zoom-btn" onclick="resetZoom()" title="重置" style="font-size:10px">↺</div>
+        </div>
+        <div id="main-chart-div" style="width:100%;height:100%"></div>
+      </div>
+      <!-- 副圖1 -->
+      <div class="pane" id="pane-sub1">
+        <div class="pane-lbl" id="lbl-sub1">成交量</div>
+        <div class="sub-canvas-wrap"><canvas id="c-sub1"></canvas></div>
+      </div>
+      <!-- 副圖2 -->
+      <div class="pane" id="pane-sub2">
+        <div class="pane-lbl" id="lbl-sub2">未平倉量</div>
+        <div class="sub-canvas-wrap"><canvas id="c-sub2"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右欄 -->
+  <div id="r-right">
+    <div class="rp-tabs">
+      <div class="rp-tab on" onclick="switchTab('analysis',this)">分析</div>
+      <div class="rp-tab" onclick="switchTab('news',this)">新聞</div>
+      <div class="rp-tab" onclick="switchTab('calendar',this)">日曆</div>
+      <div class="rp-tab" onclick="switchTab('data',this)">數據</div>
+      <div class="rp-tab" onclick="switchTab('export',this)">匯出</div>
+    </div>
+    <div id="rp-body"></div>
+  </div>
+</div>
+
+<!-- 手機版底部抽屜 -->
+<div id="drawer-toggle" onclick="toggleDrawer()">
+  <span>分析 / 新聞 / 數據</span>
+  <span class="drawer-arrow" id="drawer-arrow">▲</span>
+</div>
+<div id="mobile-drawer">
+  <div id="mobile-drawer-tabs">
+    <div class="md-tab on" onclick="switchMdTab('analysis',this)">分析</div>
+    <div class="md-tab" onclick="switchMdTab('news',this)">新聞</div>
+    <div class="md-tab" onclick="switchMdTab('calendar',this)">日曆</div>
+    <div class="md-tab" onclick="switchMdTab('data',this)">數據</div>
+  </div>
+  <div id="mobile-drawer-body"></div>
+</div>
+
+<!-- MA Modal -->
+<div id="ma-overlay" onclick="closeMaModal()"></div>
+<div id="ma-modal">
+  <div class="mm-t"><span>📐 均線參數設定</span><span class="mm-x" onclick="closeMaModal()">✕</span></div>
+  <div id="mm-rows"></div>
+  <div class="mm-btns">
+    <button class="mm-cancel" onclick="closeMaModal()">取消</button>
+    <button class="mm-ok" onclick="applyMa()">套用</button>
+  </div>
+</div>
+
+
+
+<script>
+// ══════════════════════════════════════════════════
+// 格式化
+// ══════════════════════════════════════════════════
+const fmt=(n,d=2)=>n==null||isNaN(n)?'—':Number(n).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtI=n=>Number(n).toLocaleString('zh-TW');
+const fmtK=n=>n>=1e6?(n/1e6).toFixed(2)+'M':n>=1000?(n/1000).toFixed(1)+'K':String(Math.round(n));
+
+// ══════════════════════════════════════════════════
+// 商品資料庫
+// ══════════════════════════════════════════════════
+const SYM={
+  'ZC=F':{n:'玉米',en:'Corn',ic:'ZC',cat:'grain',unit:'¢/bu',base:480,dec:2,
+    cs:['ZCK25','ZCN25','ZCU25','ZCZ25','ZCH26'],
+    psd:[['全球產量','1,225百萬MT'],['全球消費','1,215百萬MT'],['庫消比','23.7%'],['美國產量','14,862百萬bu'],['美國出口','2,275百萬bu']],
+    news:[
+      {tag:'bear',t:'USDA種植面積預估9,390萬英畝，略低於市場預期',time:'2h',src:'Reuters',url:'https://www.reuters.com/markets/commodities/',body:'美國農業部（USDA）最新種植意向報告顯示，2025年美國玉米種植面積預估為9,390萬英畝，低於市場平均預期的9,450萬英畝。分析師指出，受到大豆種植利潤相對較佳以及農業用地成本上升的影響，部分農民選擇將玉米種植面積轉向大豆。此數據對玉米市場短期偏空，但幅度不大。市場關注後續6月底的最終種植面積報告。'},
+      {tag:'bull',t:'拉尼娜氣候影響阿根廷主產區，乾旱風險上升',time:'5h',src:'Bloomberg',url:'https://www.bloomberg.com/commodities',body:'世界氣象組織（WMO）最新報告指出，拉尼娜（La Niña）氣候現象可能在今年第三季再度發展，對南美洲主要農業區降雨造成不利影響。阿根廷氣象局預測，玉米主產區布宜諾斯艾利斯省及科爾多瓦省未來三個月降雨量可能偏低30-40%。這對2025/26產季的阿根廷玉米產量預期是重大利空，分析師開始上調氣候風險溢價。'},
+      {tag:'neutral',t:'中國本週玉米採購詢價量增加，關注後續成交',time:'1d',src:'AgriCensus',url:'https://www.agricensus.com/',body:'市場消息人士透露，中國國有糧食企業本週在國際市場展開玉米採購詢價，詢價量估計在30-50萬公噸之間，主要針對美國和烏克蘭來源。不過目前僅為詢價階段，尚未確認成交。若後續完成採購，將對美國玉米出口數據帶來正面支撐。目前CME玉米期貨對此反應平淡，市場等待進一步確認。'},
+    ],
+    aiMsg:'玉米目前處於52週高位附近，技術面偏強但回調風險升高。WASDE報告前建議控制部位規模，等待報告後確認方向。氣候面南美乾旱提供下檔支撐，但美國作物條件優良壓抑漲幅空間。策略上可逢回落分批建多，停損設460以下。',
+    signals:['watch','bull','neutral']},
+  'ZS=F':{n:'黃豆',en:'Soybean',ic:'ZS',cat:'grain',unit:'¢/bu',base:1045,dec:2,
+    cs:['ZSK25','ZSN25','ZSQ25','ZSU25','ZSX25'],
+    psd:[['全球產量','422百萬MT'],['全球消費','398百萬MT'],['庫消比','32.2%'],['美國產量','4,461百萬bu'],['中國進口','107百萬MT']],
+    news:[
+      {tag:'bull',t:'中國大豆採購需求回溫，本週詢價量創近月新高',time:'1h',src:'Reuters',url:'https://www.reuters.com/markets/commodities/',body:'來自中國的採購信號持續改善，本週中國進口商在國際市場的大豆詢價量達到近一個月最高水準，估計超過80萬公噸。分析人士認為，這反映了中國壓榨利潤改善以及飼料需求季節性回升。巴西來源仍為主要採購標的，但美豆也開始獲得詢價，支撐CBOT大豆期貨偏強走勢。'},
+      {tag:'bear',t:'美國大豆種植面積預估上修至8,360萬英畝',time:'1d',src:'USDA',url:'https://www.usda.gov/oce/commodity/wasde/',body:'USDA最新農業展望論壇數據顯示，2025年美國大豆種植面積預估上修至8,360萬英畝，高於市場預期的8,280萬英畝。若天氣配合，美國大豆產量可能創下歷史新高，將對全球大豆供應形成明顯壓力。這是中長期偏空的信號，但短期受中國採購支撐，影響有限。'},
+    ],
+    aiMsg:'黃豆受中國需求支撐短期偏穩。巴西豐收已定，供給面壓力持續。中長期供給寬鬆格局確立，回彈視為賣點。關注中美貿易關係動態與美豆種植季天氣表現。',
+    signals:['neutral','bear','watch']},
+  'ZW=F':{n:'小麥',en:'Wheat',ic:'ZW',cat:'grain',unit:'¢/bu',base:548,dec:2,
+    cs:['ZWK25','ZWN25','ZWU25','ZWZ25'],
+    psd:[['全球產量','789百萬MT'],['全球消費','801百萬MT'],['庫消比','32.2%'],['俄羅斯','83百萬MT'],['貿易量','210百萬MT']],
+    news:[
+      {tag:'bull',t:'俄羅斯小麥出口配額縮減，歐洲小麥期貨跳漲',time:'3h',src:'FT',url:'https://www.ft.com/commodities',body:'俄羅斯農業部宣布將2025年下半年小麥出口配額下調15%，至約1,500萬公噸。此舉超出市場預期，歐洲MATIF小麥期貨應聲上漲近2%。俄羅斯是全球最大小麥出口國，其出口政策調整對國際糧食市場影響深遠。分析師指出，若俄羅斯連續限制出口，全球小麥供應缺口將在第四季顯現。'},
+    ],
+    aiMsg:'小麥地緣政治溢價持續，俄烏局勢是最大變數。庫消比歷史偏低，基本面中性偏多。建議關注黑海供應動態。',
+    signals:['bull','bull','watch']},
+  'KC=F':{n:'咖啡',en:'Coffee C',ic:'KC',cat:'soft',unit:'¢/lb',base:310,dec:2,
+    cs:['KCK25','KCN25','KCU25','KCZ25'],
+    psd:[['全球產量','175百萬袋'],['全球消費','178百萬袋'],['庫消比','18.0%(歷史低位)'],['巴西','66百萬袋'],['越南','28百萬袋']],
+    news:[
+      {tag:'bull',t:'巴西咖啡主產區持續乾旱，25/26產季預估再下修',time:'2h',src:'ICO',url:'https://www.ico.org/',body:'國際咖啡組織（ICO）最新月報指出，巴西米納斯吉拉斯州（Minas Gerais）咖啡主產區已連續第三個月出現嚴重降雨不足，土壤含水量降至10年最低水準。這對阿拉比卡咖啡樹的花期發育造成嚴重影響，多數分析師已將2025/26產季巴西咖啡產量預估下修至62-64百萬袋，低於上年度的66百萬袋。'},
+      {tag:'bull',t:'越南Robusta庫存降至歷史低位',time:'1d',src:'Bloomberg',url:'https://www.bloomberg.com/commodities',body:'越南胡志明市咖啡出口商公會數據顯示，目前越南倉庫的Robusta咖啡庫存量已降至2015年以來最低水準，估計僅有70萬袋左右。由於前期乾旱導致產量下滑，加上歐洲採購商積極補庫，越南Robusta現貨升水持續擴大至歷史高位。ICE期貨市場認證庫存也已連續8週下滑。'},
+    ],
+    aiMsg:'咖啡基本面強勢：庫消比18%創歷史新低，供給緊張格局難以短期緩解。但價格已大幅上漲，估值偏貴。建議等待回調後（目標280-290區間）分批建倉，停損設260以下。',
+    signals:['bull','bull','bear']},
+  'SB=F':{n:'糖',en:'Sugar #11',ic:'SB',cat:'soft',unit:'¢/lb',base:19.2,dec:3,
+    cs:['SBK25','SBN25','SBV25'],
+    psd:[['全球產量','181百萬MT'],['全球消費','186百萬MT'],['庫消比','22.5%'],['巴西','42百萬MT'],['印度','31百萬MT']],
+    news:[{tag:'bull',t:'印度政府宣布延續出口限制至下季',time:'1h',src:'Reuters',url:'https://www.reuters.com/markets/commodities/',body:'印度食品部宣布將維持白糖出口限制政策至2025年9月底，並視國內庫存情況決定是否延長。印度是全球最大糖消費國與第二大生產國，其出口政策對國際糖價具有重大影響力。此消息一出，ICE原糖期貨應聲上漲0.8%。'}],
+    aiMsg:'糖市供需缺口持續，印度出口限制加泰國減產是主要支撐。關注季風降雨表現，為今年最大不確定因素。',
+    signals:['bull','watch','bear']},
+  'CC=F':{n:'可可',en:'Cocoa',ic:'CC',cat:'soft',unit:'$/MT',base:8100,dec:0,
+    cs:['CCK25','CCN25','CCU25'],
+    psd:[['全球產量','4,440千MT'],['全球消費','4,820千MT'],['庫消比','5.8%(超低)'],['象牙海岸','1,760千MT']],
+    news:[{tag:'bull',t:'象牙海岸可可產量累積赤字擴大，供應持續偏緊',time:'3h',src:'Bloomberg',url:'https://www.bloomberg.com/commodities',body:'象牙海岸可可委員會最新出口數據顯示，本季至今的可可豆出口量較去年同期下滑22%，累積赤字持續擴大。分析師認為，受到黑果病蔓延以及農民維護投資不足的影響，西非可可產量短期內難以恢復到歷史正常水準。全球可可庫消比5.8%創歷史超低，市場供應極度緊張。'}],
+    aiMsg:'可可庫消比5.8%創歷史超低，但價格已從高點大幅回落30%。投機資金減碼是壓力來源。中長線逢低佈局，目標6500+，停損設6000以下。',
+    signals:['bull','watch','bear']},
+  'LE=F':{n:'活牛',en:'Live Cattle',ic:'LE',cat:'meat',unit:'¢/lb',base:185,dec:2,
+    cs:['LEJ25','LEM25','LEQ25','LEV25'],
+    psd:[['美國存欄','87.2百萬頭(55年新低)'],['屠宰量','26.5百萬頭'],['牛肉產量','26.2十億磅'],['Choice/Select差','$18.5/cwt']],
+    news:[{tag:'bull',t:'美國牛隻存欄創55年新低，供應緊縮持續',time:'4h',src:'USDA',url:'https://www.usda.gov/',body:'USDA最新牛隻存欄報告顯示，截至今年1月，美國牛隻總存欄數降至87.2百萬頭，為1970年以來最低水準。母牛存欄持續下滑反映牧場主補欄意願低迷，主要原因包括飼料成本高企以及乾旱導致牧草地縮減。分析師預期牛隻存欄恢復至正常水準至少需要2-3年時間，這為活牛期貨的中長期牛市提供了堅實的基本面支撐。'}],
+    aiMsg:'活牛結構性牛市：存欄55年低點意味著供給恢復需要2-3年。玉米成本是主要風險。建議回調至180附近進場，停損175。',
+    signals:['bull','bull','watch']},
+  'CL=F':{n:'原油',en:'Crude Oil',ic:'CL',cat:'energy',unit:'$/bbl',base:78,dec:2,
+    cs:['CLK25','CLM25','CLN25','CLQ25'],
+    psd:[['全球需求','102.2百萬桶/日'],['OPEC+產量','39.8百萬桶/日'],['美國庫存','4.6億桶'],['美國產量','13.1百萬桶/日']],
+    news:[{tag:'neutral',t:'OPEC+維持減產協議不變，靜待需求數據',time:'2h',src:'OPEC',url:'https://www.opec.org/',body:'OPEC+部長級監督委員會（JMMC）召開例行會議後，確認維持現有減產協議至2025年底。沙烏地阿拉伯能源部長表示，OPEC+將根據市場供需狀況靈活調整政策，目標維持油價在合理水準。市場對此反應平淡，布倫特原油小幅走升0.2%。'}],
+    aiMsg:'原油短期在75-82美元箱型震盪。OPEC+供給管理與中國需求是兩大關鍵。突破82美元再追多，跌破75美元需謹慎。',
+    signals:['neutral','watch','watch']},
+  'GC=F':{n:'黃金',en:'Gold',ic:'GC',cat:'metal',unit:'$/oz',base:2340,dec:0,
+    cs:['GCM25','GCQ25','GCZ25'],
+    psd:[['全球礦產量','3,644噸/年'],['央行購金','1,037噸'],['珠寶需求','2,093噸'],['投資需求','945噸']],
+    news:[{tag:'bull',t:'聯準會降息預期升溫，黃金避險需求增加',time:'1h',src:'FT',url:'https://www.ft.com/markets',body:'美國聯準會（Fed）最新會議紀錄顯示，多數委員對通膨回落至2%目標持樂觀態度，市場對今年降息的預期升至2-3次。受此影響，美元指數走弱，黃金現貨價格突破2,350美元關鍵阻力位，創近期新高。各國央行持續增加黃金儲備的結構性因素也為黃金提供長期支撐。'}],
+    aiMsg:'黃金中長期多頭趨勢確立。央行購金結構性增加加上降息預期，回調至2200-2250是好買點。目標看2500。',
+    signals:['bull','bull','watch']},
+  'DX=F':{n:'美元指數',en:'Dollar Index',ic:'DX',cat:'fx',unit:'pts',base:104,dec:2,
+    cs:['DXM25','DXU25','DXZ25'],
+    psd:[['組成','EUR57.6%, JPY13.6%'],['Fed利率','5.25-5.50%'],['美國CPI','3.2%'],['降息預期','2024年2次']],
+    news:[{tag:'neutral',t:'Fed會議紀錄顯示通膨仍有顧慮，降息時程延後',time:'2h',src:'WSJ',url:'https://www.wsj.com/economy',body:'美聯準會最新公布的FOMC會議紀錄顯示，雖然多數委員對通膨趨勢感到樂觀，但仍有數位委員對服務業通膨的黏性表示憂慮。部分委員認為在確認通膨持續回落之前，不宜過早降息。市場將首次降息預期從6月推遲至9月，美元指數短期獲得支撐。'}],
+    aiMsg:'美元受Fed政策主導。降息時程推遲支撐美元，強美元壓制農產品。關注100-106箱型，跌破100則農產品受益明顯。',
+    signals:['neutral','watch','watch']},
+};
+
+const WASDE=['2026-01-13','2026-02-11','2026-03-11','2026-04-09',
+             '2026-05-12','2026-06-11','2026-07-11','2026-08-12',
+             '2026-09-11','2026-10-09','2026-11-10','2026-12-10'];
+const CATS={grain:'穀物',soft:'軟商品',meat:'肉類',energy:'能源',metal:'金屬',fx:'外匯'};
+const monthMap={F:'1月',G:'2月',H:'3月',J:'4月',K:'5月',M:'6月',N:'7月',Q:'8月',U:'9月',V:'10月',X:'11月',Z:'12月'};
+
+// ══════════════════════════════════════════════════
+// 狀態
+// ══════════════════════════════════════════════════
+let activeSym='ZC=F', activePd='1D', chartType='kline', activeTab='analysis';
+let prices={}, cachedData={};
+let lwChart=null, mainSeries=null, maSeries=[];
+let subCharts={1:null,2:null};
+let maConfig=[
+  {p:5,  c:'#ff9f7f',on:true},
+  {p:10, c:'#58a6ff',on:true},
+  {p:20, c:'#c084fc',on:false},
+  {p:60, c:'#fbbf24',on:false},
+];
+
+// ══════════════════════════════════════════════════
+// 模擬資料
+// ══════════════════════════════════════════════════
+function simPrice(sym){
+  const b=SYM[sym]?.base||100;
+  const prev=prices[sym]?.price||b;
+  const p=Math.max(b*.6,prev+(Math.random()-.487)*b*.008);
+  const chg=p-b; const pct=chg/b*100;
+  prices[sym]={price:p,chg,pct,
+    open:b*(1+(Math.random()-.5)*.004),
+    high:p*(1+Math.random()*.009),
+    low:p*(1-Math.random()*.009),
+    high52:b*(1.09+Math.random()*.1),
+    low52:b*(.82+Math.random()*.08),
+    volume:Math.round(50000+Math.random()*280000),
+    oi:Math.round(200000+Math.random()*750000)};
+  return prices[sym];
+}
+
+function genOHLC(n,base,pd){
+  const vol=pd==='1W'?.015:pd==='1M'?.025:pd==='3M'?.04:pd==='1Y'?.06:.012;
+  let c=base*(.88+Math.random()*.1);
+  const now=Math.floor(Date.now()/1000);
+  const step=pd==='1D'?86400:pd==='1W'?604800:pd==='1M'?2592000:pd==='3M'?7776000:31536000;
+  return Array.from({length:n},(_,i)=>{
+    c=Math.max(base*.4,c*(1+(Math.random()-.488)*vol));
+    const rng=c*(.005+Math.random()*.02);
+    const o=+(c*(1+(Math.random()-.5)*.006)).toFixed(2);
+    const h=+(Math.max(o,c)+Math.random()*rng).toFixed(2);
+    const l=+(Math.min(o,c)-Math.random()*rng).toFixed(2);
+    return{time:now-(n-1-i)*step,open:o,high:h,low:l,close:+c.toFixed(2)};
+  });
+}
+
+function genVol(ohlc){
+  return ohlc.map(d=>({time:d.time,value:Math.round(50000+Math.random()*280000),color:d.close>=d.open?'rgba(63,185,80,.6)':'rgba(248,81,73,.6)'}));
+}
+
+function genOI(ohlc){
+  let v=200000;
+  return ohlc.map(d=>{v=Math.max(50000,v*(1+(Math.random()-.47)*.03));return{time:d.time,value:Math.round(v)};});
+}
+
+// ══════════════════════════════════════════════════
+// Ticker
+// ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// 頂端選單：分類標籤 + 商品按鈕
+// ══════════════════════════════════════════════════
+let activeCat = 'grain';
+
+function buildCats(){
+  const allCats = [['all','全部'],...Object.entries(CATS)];
+  document.getElementById('r-cats').innerHTML = allCats.map(([cat,lbl],i)=>
+    `${i>0?'<div class="cat-sep-v"></div>':''}<div class="cat-pill${cat===activeCat?' on':''}" onclick="selectCat('${cat}')">${lbl}</div>`
+  ).join('');
+}
+
+function buildSyms(){
+  const syms = activeCat==='all'
+    ? Object.entries(SYM)
+    : Object.entries(SYM).filter(([,v])=>v.cat===activeCat);
+  document.getElementById('r-syms').innerHTML = syms.map(([sym,info])=>{
+    const p = prices[sym]||{price:info.base,pct:0,chg:0};
+    const cls = p.pct>0?'up':p.pct<0?'dn':'fl';
+    const sign = p.pct>=0?'+':'';
+    const isAct = sym===activeSym;
+    return `<div class="sym-btn${isAct?' active':''}" id="sp-${sym.replace(/[=.]/g,'_')}" onclick="selectSym('${sym}')">
+      <div class="sym-btn-top">
+        <span class="ic-badge">${info.ic}</span>
+        <span style="${isAct?'color:var(--act-tx);font-weight:700':''}">${info.n}</span>
+      </div>
+      <div class="sym-btn-bot">
+        <span class="sym-price" style="${isAct?'color:#fff':''}">${fmt(p.price,info.dec)}</span>
+        <span class="sym-chg ${cls}">${sign}${p.pct.toFixed(2)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectCat(cat){
+  activeCat = cat;
+  buildCats();
+  buildSyms();
+}
+
+function buildNav(){
+  buildCats();
+  buildSyms();
+}
+
+// 保留舊名以相容
+function buildTicker(){}
+function buildSymBar(){ buildNav(); }
+
+// ══════════════════════════════════════════════════
+// 選商品
+// ══════════════════════════════════════════════════
+function fmtCt(code){const m=code.slice(-3,-2),y='20'+code.slice(-2);return`${monthMap[m]||m} ${y}`;}
+
+function selectSym(sym){
+  activeSym=sym;
+  const info=SYM[sym]; const p=prices[sym]||simPrice(sym);
+  // 更新頂端選單 active 狀態
+  document.querySelectorAll('.sym-btn').forEach(el=>el.classList.remove('active'));
+  const sp=document.getElementById('sp-'+sym.replace(/[=.]/g,'_'));
+  if(sp)sp.classList.add('active');
+  // 報價頭
+  document.getElementById('qh-name').textContent=`${info.n} ${info.en} — ${sym}`;
+  const isUp=p.pct>=0; const sign=isUp?'+':'';
+  const pe=document.getElementById('qh-price');
+  pe.textContent=fmt(p.price,info.dec); pe.style.color=isUp?'var(--g)':'var(--r)';
+  const ce=document.getElementById('qh-chg');
+  ce.textContent=`${sign}${fmt(p.chg,info.dec)} (${sign}${p.pct.toFixed(2)}%)`;
+  ce.className=isUp?'up':'dn';
+  document.getElementById('qh-unit').textContent=info.unit;
+  document.getElementById('qh-o').textContent=fmt(p.open,info.dec);
+  document.getElementById('qh-h').textContent=fmt(p.high,info.dec);
+  document.getElementById('qh-l').textContent=fmt(p.low,info.dec);
+  document.getElementById('qh-vol').textContent=fmtI(p.volume);
+  document.getElementById('qh-oi').textContent=fmtI(p.oi);
+  document.getElementById('qh-52h').textContent=fmt(p.high52,info.dec);
+  document.getElementById('qh-52l').textContent=fmt(p.low52,info.dec);
+  // 合約
+  document.getElementById('contracts').innerHTML=(info.cs||[]).map((c,i)=>
+    `<button class="cr-btn${i===0?' active':''}" onclick="document.querySelectorAll('.cr-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');rebuildMain()">${fmtCt(c)}</button>`
+  ).join('');
+  rebuildAll(); renderRp(activeTab);
+}
+
+// ══════════════════════════════════════════════════
+// LightweightCharts 主圖
+// ══════════════════════════════════════════════════
+const lwColors={
+  background:'#07090c',textColor:'#8b949e',gridColor:'rgba(33,38,45,.6)',
+  upBody:'rgba(248,81,73,.85)',downBody:'rgba(63,185,80,.85)',
+  upBorder:'#f85149',downBorder:'#3fb950',
+  wickUp:'#f85149',wickDown:'#3fb950',
+};
+
+function initLWChart(){
+  const div=document.getElementById('main-chart-div');
+  if(lwChart){lwChart.remove();lwChart=null;mainSeries=null;maSeries=[];}
+  lwChart=LightweightCharts.createChart(div,{
+    width:div.clientWidth, height:div.clientHeight,
+    layout:{background:{type:'Solid',color:lwColors.background},textColor:lwColors.textColor,fontFamily:'Consolas'},
+    grid:{vertLines:{color:lwColors.gridColor},horzLines:{color:lwColors.gridColor}},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal},
+    rightPriceScale:{borderColor:lwColors.gridColor,textColor:lwColors.textColor},
+    timeScale:{borderColor:lwColors.gridColor,textColor:lwColors.textColor,timeVisible:true},
+    handleScroll:true, handleScale:true,
+  });
+}
+
+function rebuildMain(){
+  // 每次重建主圖前，完整重初始化 chart（避免系列殘留造成空白）
+  initLWChart();
+  maSeries=[];
+
+  const info=SYM[activeSym];
+  const nMap={'1D':120,'1W':80,'1M':60,'3M':40,'1Y':20};
+  const n=nMap[activePd]||80;
+  const ohlc=genOHLC(n,info.base,activePd);
+  // 快取
+  if(!cachedData[activeSym]) cachedData[activeSym]={};
+  cachedData[activeSym][activePd]={ohlc,ts:Date.now()};
+
+  if(chartType==='kline'){
+    // 蠟燭圖
+    mainSeries=lwChart.addCandlestickSeries({
+      upColor:lwColors.upBody,downColor:lwColors.downBody,
+      borderUpColor:lwColors.upBorder,borderDownColor:lwColors.downBorder,
+      wickUpColor:lwColors.wickUp,wickDownColor:lwColors.wickDown,
+    });
+    mainSeries.setData(ohlc);
+  } else if(chartType==='ohlc'){
+    // OHLC 美式線圖（Bar Series）
+    mainSeries=lwChart.addBarSeries({
+      upColor:lwColors.upBorder,
+      downColor:lwColors.downBorder,
+    });
+    mainSeries.setData(ohlc);
+  } else {
+    // 收盤線
+    const isUp=ohlc[ohlc.length-1].close>=ohlc[0].close;
+    mainSeries=lwChart.addLineSeries({color:isUp?'#f85149':'#3fb950',lineWidth:1.5,priceLineVisible:false});
+    mainSeries.setData(ohlc.map(d=>({time:d.time,value:d.close})));
+  }
+
+  // MA 線
+  maConfig.forEach(ma=>{
+    if(!ma.on) return;
+    const closes=ohlc.map(d=>d.close);
+    const maData=ohlc.map((d,i)=>{
+      if(i<ma.p-1) return null;
+      const avg=closes.slice(i-ma.p+1,i+1).reduce((a,b)=>a+b,0)/ma.p;
+      return{time:d.time,value:+avg.toFixed(info.dec)};
+    }).filter(Boolean);
+    const s=lwChart.addLineSeries({color:ma.c,lineWidth:1,priceLineVisible:false,lastValueVisible:false});
+    s.setData(maData);
+    maSeries.push(s);
+  });
+
+  // 標籤
+  const maLbls=maConfig.filter(m=>m.on).map(m=>`<span style="color:${m.c}">MA${m.p}</span>`).join(' ');
+  document.getElementById('lbl-main').innerHTML=`<b>${info.n}</b> ${info.unit} &nbsp;${maLbls}`;
+  lwChart.timeScale().fitContent();
+
+  // 同步副圖用同一份 ohlc（延遲確保主圖 render 完成）
+  window._lastOHLC=ohlc;
+  setTimeout(()=>{ rebuildSub(1); rebuildSub(2); }, 50);
+}
+
+function zoomChart(factor){
+  if(!lwChart) return;
+  const ts=lwChart.timeScale();
+  const vr=ts.getVisibleLogicalRange();
+  if(!vr) return;
+  const mid=(vr.from+vr.to)/2;
+  const half=(vr.to-vr.from)/2/factor;
+  ts.setVisibleLogicalRange({from:mid-half,to:mid+half});
+}
+function resetZoom(){if(lwChart) lwChart.timeScale().fitContent();}
+
+// ══════════════════════════════════════════════════
+// 副圖（Chart.js）
+// ══════════════════════════════════════════════════
+const sgc='rgba(33,38,45,.6)',stc='#484f58',sfont={family:'Consolas',size:9};
+const baseSubOpts={responsive:true,maintainAspectRatio:false,animation:{duration:200},
+  interaction:{mode:'index',intersect:false},
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#0d1117',borderColor:'#21262d',borderWidth:1,
+    titleColor:'#8b949e',bodyColor:'#e6edf3',titleFont:sfont,bodyFont:sfont,callbacks:{}}},
+  scales:{x:{display:false},y:{grid:{color:sgc},ticks:{color:stc,font:sfont,callback:v=>fmtK(v)},position:'right'}}};
+
+// 產生符合真實規律的模擬成交量（日均35萬口，有季節波動）
+function genSimVol(ohlc){
+  const base = 350000;
+  return ohlc.map((d,i)=>{
+    const dayOfWeek = new Date(d.time*1000).getDay();
+    const weekMult = (dayOfWeek===1||dayOfWeek===5)?1.3:(dayOfWeek===3)?1.1:1.0;
+    const trend = 1 + Math.sin(i/20)*0.15;
+    const noise = 0.7 + Math.random()*0.6;
+    return Math.round(base * weekMult * trend * noise);
+  });
+}
+// 產生符合真實規律的模擬 OI（週頻 CFTC，平滑趨勢）
+function genSimOI(ohlc){
+  let v = 1200000 + Math.random()*400000;
+  return ohlc.map((d,i)=>{
+    const trend = Math.sin(i/30)*0.08;
+    const noise = (Math.random()-0.47)*0.025;
+    v = Math.max(400000, v*(1+trend*0.1+noise));
+    return Math.round(v);
+  });
+}
+
+function calcSubData(type,ohlc){
+  const closes=ohlc.map(d=>d.close), n=closes.length;
+  if(type==='vol'){
+    const vols = genSimVol(ohlc);
+    return{data:ohlc.map((d,i)=>({v:vols[i],c:d.close>=d.open?'rgba(248,81,73,.65)':'rgba(63,185,80,.65)'})),
+      lbl:'成交量（模擬，CME ZC 日均35萬口）',isBar:true};}
+  if(type==='oi'){
+    const ois = genSimOI(ohlc);
+    return{data:ois.map(v=>({v,c:'#58a6ff'})),
+      lbl:'未平倉量（模擬趨勢，實際數據請參考 CME/CFTC）',isBar:false,color:'#58a6ff'};}
+  if(type==='oi_chg'){
+    const ois=genSimOI(ohlc);
+    return{data:ois.map((x,i)=>({v:i===0?0:+((x-ois[i-1])/ois[i-1]*100).toFixed(3),c:i===0||x>=ois[i-1]?'rgba(63,185,80,.7)':'rgba(248,81,73,.7)'})),
+      lbl:'OI變化率%（模擬）',isBar:true};}
+  if(type==='vol_chg'){
+    const vs=genSimVol(ohlc);
+    return{data:vs.map((x,i)=>({v:i===0?0:+((x-vs[i-1])/vs[i-1]*100).toFixed(2),c:i===0||x>=vs[i-1]?'rgba(63,185,80,.7)':'rgba(248,81,73,.7)'})),
+      lbl:'量變化率%（模擬）',isBar:true};}
+  if(type==='rsi'){
+    const p=14; const gs=[],ls=[];
+    for(let i=1;i<n;i++){const d=closes[i]-closes[i-1];gs.push(d>0?d:0);ls.push(d<0?-d:0);}
+    const rsi=[null];
+    for(let i=0;i<gs.length;i++){
+      if(i<p-1){rsi.push(null);continue;}
+      const ag=gs.slice(i-p+1,i+1).reduce((a,b)=>a+b)/p;
+      const al=ls.slice(i-p+1,i+1).reduce((a,b)=>a+b)/p;
+      rsi.push(al===0?100:+(100-100/(1+ag/al)).toFixed(2));
+    }
+    return{data:rsi.map(v=>({v,c:'#f0c644'})),lbl:'RSI(14)',isBar:false,color:'#f0c644',refs:[70,50,30]};}
+  if(type==='macd'){
+    const ema=(arr,p)=>{const k=2/(p+1);let e=arr[0];return arr.map(v=>{e=v*k+e*(1-k);return+e.toFixed(4);});};
+    const e12=ema(closes,12),e26=ema(closes,26);
+    const ml=e12.map((v,i)=>+(v-e26[i]).toFixed(4));
+    const sg=ema(ml,9);
+    const hist=ml.map((v,i)=>+(v-sg[i]).toFixed(4));
+    return{data:hist.map((v,i)=>({v,c:v>=0?'rgba(248,81,73,.7)':'rgba(63,185,80,.7)'})),lbl:'MACD直方圖',isBar:true,
+      extra:[{data:ml,color:'#58a6ff',lbl:'MACD'},{data:sg,color:'#f0c644',lbl:'Signal'}]};}
+  if(type==='atr'){
+    const atr=[null];
+    for(let i=1;i<n;i++){
+      const tr=Math.max(ohlc[i].high-ohlc[i].low,Math.abs(ohlc[i].high-closes[i-1]),Math.abs(ohlc[i].low-closes[i-1]));
+      if(i<14){atr.push(null);continue;}
+      const prev=atr[atr.length-1]||tr;
+      atr.push(+((prev*13+tr)/14).toFixed(4));
+    }
+    return{data:atr.map(v=>({v,c:'#ff7b54'})),lbl:'ATR(14)',isBar:false,color:'#ff7b54'};}
+  return null;
+}
+
+function rebuildSub(idx){
+  const type = document.getElementById('s'+idx).value;
+  const pane = document.getElementById('pane-sub'+idx);
+  const lbl  = document.getElementById('lbl-sub'+idx);
+
+  if(type==='none'){ pane.style.display='none'; return; }
+  pane.style.display='';
+
+  // 銷毀舊圖
+  if(subCharts[idx]){ subCharts[idx].destroy(); subCharts[idx]=null; }
+
+  // 重建 canvas（避免舊 canvas 尺寸殘留）
+  const wrap = document.getElementById('c-sub'+idx).parentNode;
+  const oldCanvas = document.getElementById('c-sub'+idx);
+  oldCanvas.remove();
+  const newCanvas = document.createElement('canvas');
+  newCanvas.id = 'c-sub'+idx;
+  newCanvas.style.cssText = 'display:block';
+  // 使用父容器的實際像素尺寸
+  // 強制顯示 pane 後再量測尺寸
+  pane.style.display = '';
+  const pW = pane.offsetWidth  || 900;
+  const pH = (pane.offsetHeight || 110) - 20; // 扣掉 label 高度
+  newCanvas.width  = pW;
+  newCanvas.height = pH;
+  wrap.appendChild(newCanvas);
+
+  const ohlc = window._lastOHLC || genOHLC(120, SYM[activeSym].base, activePd);
+  const labels = ohlc.map(d => {
+    const dt = new Date(d.time*1000);
+    return (dt.getMonth()+1)+'/'+(dt.getDate());
+  });
+  const res = calcSubData(type, ohlc);
+  if(!res){ lbl.textContent='無資料'; return; }
+  // 標籤：長字串截斷
+  lbl.title = res.lbl; // hover 顯示完整
+  lbl.textContent = res.lbl.length>20 ? res.lbl.slice(0,20)+'…' : res.lbl;
+
+  const ctx = newCanvas.getContext('2d');
+  const datasets = [];
+
+  if(res.isBar){
+    datasets.push({
+      type:'bar', label:res.lbl,
+      data: res.data.map(d => d.v==null?null:d.v),
+      backgroundColor: res.data.map(d => d.c||'rgba(88,166,255,.6)'),
+      borderRadius:2, barPercentage:0.8
+    });
+  } else {
+    const color = res.color||'#58a6ff';
+    const grad = ctx.createLinearGradient(0,0,0,100);
+    grad.addColorStop(0, color+'44');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    datasets.push({
+      type:'line', label:res.lbl,
+      data: res.data.map(d => d.v==null?null:d.v),
+      borderColor:color, backgroundColor:grad,
+      fill:true, tension:.3, borderWidth:1.5, pointRadius:0,
+      spanGaps:false
+    });
+  }
+
+  if(res.extra){
+    res.extra.forEach(e=>{
+      datasets.push({
+        type:'line', label:e.lbl, data:e.data,
+        borderColor:e.color, backgroundColor:'transparent',
+        fill:false, tension:.3, borderWidth:1, pointRadius:0
+      });
+    });
+  }
+
+  const opts = {
+    responsive:false, maintainAspectRatio:false,
+    animation:{duration:300},
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#0d1117', borderColor:'#21262d', borderWidth:1,
+        titleColor:'#8b949e', bodyColor:'#e6edf3',
+        titleFont:{family:'Consolas',size:9}, bodyFont:{family:'Consolas',size:9},
+        callbacks:{
+          label: ctx => {
+            const v = ctx.raw;
+            if(v==null) return '';
+            return res.lbl+': '+(Math.abs(v)>=1000?fmtI(Math.round(v)):v.toFixed(2));
+          }
+        }
+      }
+    },
+    scales:{
+      x:{ display:false },
+      y:{
+        grid:{color:'rgba(33,38,45,.6)'},
+        ticks:{color:'#484f58', font:{family:'Consolas',size:9}, callback:v=>fmtK(v)},
+        position:'right'
+      }
+    }
+  };
+
+  if(res.refs){
+    // RSI 參考線用 afterDraw plugin
+  }
+
+  subCharts[idx] = new Chart(ctx, {type:'bar', data:{labels, datasets}, options:opts});
+  // 確保在視窗 resize 時副圖也更新
+  subCharts[idx]._paneIdx = idx;
+}
+
+function rebuildAll(){
+  try{ rebuildMain(); }
+  catch(e){ console.warn('rebuildMain error:',e); initLWChart(); rebuildMain(); }
+}
+
+// ══════════════════════════════════════════════════
+// 週期 & 主圖類型
+// ══════════════════════════════════════════════════
+function setPd(pd,el){
+  activePd=pd;
+  document.querySelectorAll('.tb-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  rebuildMain();
+}
+function setChartType(type,el){
+  chartType=type;
+  document.querySelectorAll('.ct-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  rebuildMain();
+}
+
+// ══════════════════════════════════════════════════
+// MA
+// ══════════════════════════════════════════════════
+function buildMaChips(){
+  document.getElementById('ma-chips').innerHTML=maConfig.map((ma,i)=>`
+    <div class="ma-chip${ma.on?' on':''}" onclick="toggleMa(${i})">
+      <div class="ma-dot" style="background:${ma.c}"></div>MA${ma.p}</div>`).join('');
+}
+function toggleMa(i){maConfig[i].on=!maConfig[i].on;buildMaChips();rebuildMain();}
+function openMaModal(){
+  document.getElementById('mm-rows').innerHTML=maConfig.map((ma,i)=>`
+    <div class="mm-row">
+      <div class="mm-tog${ma.on?' on':''}" id="mt${i}" onclick="this.classList.toggle('on')"></div>
+      <span class="mm-lbl">MA</span>
+      <input class="mm-inp" type="number" id="mp${i}" value="${ma.p}" min="1" max="500">
+      <input class="mm-col" type="color" id="mc${i}" value="${ma.c}">
+    </div>`).join('');
+  document.getElementById('ma-overlay').style.display='block';
+  document.getElementById('ma-modal').style.display='block';
+}
+function closeMaModal(){
+  document.getElementById('ma-overlay').style.display='none';
+  document.getElementById('ma-modal').style.display='none';
+}
+function applyMa(){
+  maConfig=maConfig.map((_,i)=>({p:+document.getElementById('mp'+i).value,c:document.getElementById('mc'+i).value,on:document.getElementById('mt'+i).classList.contains('on')}));
+  closeMaModal();buildMaChips();rebuildMain();
+}
+
+// ══════════════════════════════════════════════════
+// 右欄
+// ══════════════════════════════════════════════════
+function switchTab(tab,el){
+  activeTab=tab;
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');renderRp(tab);
+}
+const sigMap={bull:'多頭信號',bear:'空頭信號',watch:'需觀察',neutral:'中性'};
+
+function renderRp(tab){
+  const info=SYM[activeSym]; const p=prices[activeSym]||{};
+  const body=document.getElementById('rp-body');
+
+  if(tab==='analysis'){
+    const today=new Date();today.setHours(0,0,0,0);
+    let nxt='',dys=999;
+    for(const d of WASDE){const diff=Math.round((new Date(d)-today)/86400000);if(diff>=0){nxt=d;dys=diff;break;}}
+    const wNote=dys<=7
+      ?`<div style="font-size:11px;padding:8px;background:rgba(240,198,68,.07);border:1px solid rgba(240,198,68,.25);border-radius:4px;color:var(--y);margin-bottom:10px">⚠️ WASDE 報告 ${nxt}（${dys}天後），建議降低曝險</div>`
+      :`<div style="font-size:10px;padding:6px;background:var(--bg4);border-radius:4px;color:var(--tx3);margin-bottom:8px;font-family:var(--fmono)">📅 下次 WASDE：${nxt}（${dys}天後）</div>`;
+    const pos=p.price&&p.high52&&p.low52?Math.min(100,Math.max(0,(p.price-p.low52)/(p.high52-p.low52)*100)):50;
+    const sigs=(info.signals||[]).map(s=>`<span class="sig ${s}">${sigMap[s]}</span>`).join('');
+    body.innerHTML=`
+      <div class="ai-card">
+        <div class="ai-t">🤖 AI 市場分析 — ${info.n}</div>
+        <div class="ai-b">${info.aiMsg}</div>
+        <div class="sig-row">${sigs}</div>
+      </div>
+      ${wNote}
+      <div class="sec">52週價格位置</div>
+      <div class="range-wrap">
+        <div class="range-lbs"><span>${fmt(p.low52,info.dec)}</span><span style="color:var(--tx)">${fmt(p.price,info.dec)}</span><span>${fmt(p.high52,info.dec)}</span></div>
+        <div class="range-bar">
+          <div class="range-fill" style="width:${pos.toFixed(0)}%;background:${(p.pct||0)>=0?'var(--g)':'var(--r)'}"></div>
+          <div class="range-mk" style="left:${pos.toFixed(0)}%;background:${(p.pct||0)>=0?'var(--g)':'var(--r)'}"></div>
+        </div>
+        <div style="text-align:center;font-family:var(--fnum);font-size:9px;font-weight:700;color:var(--tx3);margin-top:4px">年度區間第 ${pos.toFixed(0)}% 位</div>
+      </div>`;
+  }
+
+  if(tab==='news'){
+    body.innerHTML=`<div class="sec">市場新聞</div>` +
+      (info.news||[]).map(n=>`
+        <div class="news-item">
+          <a class="open-link" href="${n.url}" target="_blank" rel="noopener noreferrer">🔗 原文</a>
+          <div class="n-tag ${n.tag}">${n.tag==='bull'?'多方利好':n.tag==='bear'?'空方利空':'中性'}</div>
+          <div class="n-title">${n.t}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
+            <span class="n-time">${n.time} 前</span>
+            <span class="n-src">${n.src}</span>
+          </div>
+        </div>`).join('');
+  }
+
+  if(tab==='calendar'){
+    const today=new Date();today.setHours(0,0,0,0);
+    const rows=WASDE.filter(d=>Math.round((new Date(d)-today)/86400000)>=-14).slice(0,8).map(d=>{
+      const diff=Math.round((new Date(d)-today)/86400000);
+      let badge='',dc='var(--tx2)';
+      if(diff<0){badge=`<span class="wb past">${-diff}天前</span>`;dc='var(--tx3)';}
+      else if(diff===0){badge=`<span class="wb today">今天！</span>`;dc='var(--r)';}
+      else if(diff<=7){badge=`<span class="wb soon">⚠ ${diff}天後</span>`;dc='var(--y)';}
+      else badge=`<span class="wb future">${diff}天後</span>`;
+      return`<div class="wasde-row"><span style="color:${dc}">${d}</span>${badge}</div>`;
+    }).join('');
+    body.innerHTML=`<div class="sec">WASDE 月報日曆 2026</div>${rows}
+      <div style="font-size:10px;color:var(--tx3);font-family:var(--fmono);margin-bottom:10px">每月第二週 ET 12:00 發布</div>
+      <div class="sec">重要報告</div>
+      <div class="wasde-row"><span style="color:var(--tx2)">種植面積報告</span><span class="wb future">3月/6月末</span></div>
+      <div class="wasde-row"><span style="color:var(--tx2)">作物生長報告</span><span class="wb future">每週一（夏季）</span></div>
+      <div class="wasde-row"><span style="color:var(--tx2)">出口檢驗報告</span><span class="wb future">每週四</span></div>
+      <div class="wasde-row"><span style="color:var(--tx2)">期末庫存報告</span><span class="wb future">每季末</span></div>`;
+  }
+
+  if(tab==='data'){
+    const psd=info.psd||[];
+    body.innerHTML=`<div class="sec">USDA PSD 供需（2025/26）</div>
+      ${psd.map(([k,v])=>`<div class="psd-row"><span class="psd-k">${k}</span><span class="psd-v">${v}</span></div>`).join('')}
+      <div class="sec" style="margin-top:12px">即時數據</div>
+      <div class="psd-row"><span class="psd-k">成交量</span><span class="psd-v">${fmtI(p.volume||0)}</span></div>
+      <div class="psd-row"><span class="psd-k">未平倉量</span><span class="psd-v">${fmtI(p.oi||0)}</span></div>
+      <div class="psd-row"><span class="psd-k">52週高</span><span class="psd-v" style="color:var(--g)">${fmt(p.high52,info.dec)}</span></div>
+      <div class="psd-row"><span class="psd-k">52週低</span><span class="psd-v" style="color:var(--r)">${fmt(p.low52,info.dec)}</span></div>
+      <div class="sec" style="margin-top:12px">合約規格</div>
+      <div class="psd-row"><span class="psd-k">報價單位</span><span class="psd-v">${info.unit}</span></div>
+      <div class="psd-row"><span class="psd-k">交易所</span><span class="psd-v">${info.cat==='grain'||info.cat==='soft'||info.cat==='meat'?'CME/CBOT':info.cat==='energy'?'NYMEX':'COMEX/CME'}</span></div>
+      <div class="psd-row"><span class="psd-k">活躍合約</span><span class="psd-v">${fmtCt(info.cs?.[0]||'')}</span></div>`;
+  }
+
+  if(tab==='export'){
+    body.innerHTML=`<div class="sec">資料匯出與儲存</div>
+      <button class="dl-btn" onclick="exportCSV()">📊 匯出當前商品歷史數據（CSV）</button>
+      <button class="dl-btn" onclick="exportAllJSON()">💾 匯出所有商品快取（JSON）</button>
+      <button class="dl-btn" onclick="saveData()">💾 儲存離線資料到本地</button>
+      <button class="dl-btn" onclick="loadData()">📂 載入本地儲存資料</button>
+      <div class="sec" style="margin-top:12px">離線使用說明</div>
+      <div style="font-size:11px;line-height:1.8;color:var(--tx2)">
+        1. 點擊「儲存離線資料」將當前所有報價與圖表數據存入瀏覽器（IndexedDB）<br>
+        2. 下次無網路時打開本檔，點「載入本地儲存資料」即可使用舊資料<br>
+        3. 有網路時點「刷新」可自動更新最新數據<br>
+        4. 建議每日使用後儲存一次資料
+      </div>
+      <div class="sec" style="margin-top:12px">數據來源說明</div>
+      <div style="font-size:11px;line-height:1.85;color:var(--tx2)">
+        <span style="color:var(--y)">📊 成交量</span>：模擬數據，參考 CME ZC 日均35萬口規律。實際數據可從 <a href="https://www.cmegroup.com/markets/agriculture/grains/corn.volume.html" target="_blank" style="color:var(--c)">CME Volume</a> 查詢。<br><br>
+        <span style="color:var(--y)">📈 未平倉量</span>：Yahoo Finance 不提供期貨 OI。免費來源：<br>
+        ・<a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" style="color:var(--c)">CFTC COT 報告</a>（週頻，每週五）<br>
+        ・<a href="https://www.cmegroup.com/markets/agriculture/grains/corn.volume.html" target="_blank" style="color:var(--c)">CME Group</a>（需登入）<br>
+        ・<a href="https://www.barchart.com/futures/quotes/ZC*0/open-interest" target="_blank" style="color:var(--c)">Barchart.com</a>（免費查詢）<br><br>
+        <span style="color:var(--y)">💡 建議</span>：使用配套的 Python 工具 usda_corn_tracker.py 可定期從 CFTC 下載 OI 數據並儲存至本地，下次開啟時自動載入真實數據。
+      </div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════
+function openExternal(url){
+  window.open(url,'_blank','noopener,noreferrer');
+}
+
+// ══════════════════════════════════════════════════
+// 資料儲存（localStorage + JSON匯出）
+// ══════════════════════════════════════════════════
+function saveData(){
+  try{
+    const saveObj={prices,cachedData,savedAt:new Date().toISOString(),version:'v4'};
+    localStorage.setItem('agriwatch_data',JSON.stringify(saveObj));
+    alert(`✅ 資料已儲存！\n時間：${saveObj.savedAt}\n下次無網路時可載入使用。`);
+  }catch(e){alert('儲存失敗：'+e.message);}
+}
+function loadData(){
+  try{
+    const raw=localStorage.getItem('agriwatch_data');
+    if(!raw){alert('找不到本地儲存資料，請先儲存。');return;}
+    const obj=JSON.parse(raw);
+    prices=obj.prices||prices;
+    cachedData=obj.cachedData||cachedData;
+    buildNav();selectSym(activeSym);
+    alert(`✅ 已載入本地資料！\n儲存時間：${obj.savedAt||'未知'}`);
+  }catch(e){alert('載入失敗：'+e.message);}
+}
+function exportCSV(){
+  const ohlc=cachedData[activeSym]?.[activePd]?.ohlc;
+  if(!ohlc){alert('請先切換圖表週期以生成數據');return;}
+  const rows=['日期,開盤,最高,最低,收盤'].concat(
+    ohlc.map(d=>`${new Date(d.time*1000).toLocaleDateString('zh-TW')},${d.open},${d.high},${d.low},${d.close}`)
+  );
+  const blob=new Blob(['\uFEFF'+rows.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`${activeSym.replace('=F','')}_${activePd}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+function exportAllJSON(){
+  const blob=new Blob([JSON.stringify({prices,cachedData,exportAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`agriwatch_all_${new Date().toISOString().slice(0,10)}.json`;a.click();
+}
+
+// ══════════════════════════════════════════════════
+// 時鐘
+// ══════════════════════════════════════════════════
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('zh-TW');
+  const etH=(now.getUTCHours()-4+24)%24,isWknd=now.getDay()===0||now.getDay()===6;
+  const b=document.getElementById('mkt-b');
+  if(!isWknd&&etH>=9&&etH<14){b.textContent='CBOT 交易中';b.className='mkt-b open';}
+  else{b.textContent='盤後/休市';b.className='mkt-b closed';}
+}
+
+// 視窗大小調整
+function onResize(){
+  if(lwChart){
+    const div=document.getElementById('main-chart-div');
+    lwChart.applyOptions({width:div.clientWidth,height:div.clientHeight});
+  }
+  // 副圖也重建以符合新尺寸
+  if(window._lastOHLC){
+    setTimeout(()=>{ rebuildSub(1); rebuildSub(2); }, 100);
+  }
+}
+window.addEventListener('resize',onResize);
+
+// ══════════════════════════════════════════════════
+// 刷新
+// ══════════════════════════════════════════════════
+function refreshAll(){
+  Object.keys(SYM).forEach(s=>simPrice(s));
+  buildNav();selectSym(activeSym);
+}
+
+// ══════════════════════════════════════════════════
+// 啟動
+// ══════════════════════════════════════════════════
+function init(){
+  // 嘗試載入本地資料
+  try{
+    const raw=localStorage.getItem('agriwatch_data');
+    if(raw){const obj=JSON.parse(raw);prices=obj.prices||{};}
+  }catch(e){}
+  Object.keys(SYM).forEach(s=>{if(!prices[s]) simPrice(s);});
+  buildNav();buildMaChips();
+  selectSym('ZC=F');
+  updateClock();setInterval(updateClock,1000);
+  setInterval(()=>{
+    Object.keys(SYM).forEach(s=>simPrice(s));
+    buildNav();
+    const p=prices[activeSym];const info=SYM[activeSym];
+    if(p){
+      const isUp=p.pct>=0;const sign=isUp?'+':'';
+      const pe=document.getElementById('qh-price');
+      pe.textContent=fmt(p.price,info.dec);pe.style.color=isUp?'var(--g)':'var(--r)';
+      document.getElementById('qh-chg').textContent=`${sign}${fmt(p.chg,info.dec)} (${sign}${p.pct.toFixed(2)}%)`;
+      document.getElementById('qh-vol').textContent=fmtI(p.volume);
+      document.getElementById('qh-oi').textContent=fmtI(p.oi);
+    }
+  },30000);
+}
+
+// ══════════════════════════════════════════
+// 手機版底部抽屜
+// ══════════════════════════════════════════
+let drawerOpen = false;
+let activeMdTab = 'analysis';
+
+function isMobile(){ return window.innerWidth <= 768; }
+
+function toggleDrawer(){
+  drawerOpen = !drawerOpen;
+  const d = document.getElementById('mobile-drawer');
+  const arrow = document.getElementById('drawer-arrow');
+  d.classList.toggle('open', drawerOpen);
+  arrow.classList.toggle('up', drawerOpen);
+  if(drawerOpen) renderMdTab(activeMdTab);
+}
+
+function switchMdTab(tab, el){
+  activeMdTab = tab;
+  document.querySelectorAll('.md-tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderMdTab(tab);
+}
+
+function renderMdTab(tab){
+  // 複用右欄 renderRp 的邏輯，寫入手機抽屜
+  const body = document.getElementById('mobile-drawer-body');
+  if(!body) return;
+  // 暫時把 rp-body 指向 mobile-drawer-body
+  const orig = document.getElementById('rp-body');
+  const origHTML = orig.innerHTML;
+  const origId = orig.id;
+  orig.id = '__rp_tmp';
+  body.id = 'rp-body';
+  renderRp(tab);
+  body.id = 'mobile-drawer-body';
+  orig.id = origId;
+  // 同步更新桌面版
+  orig.innerHTML = body.innerHTML;
+}
+
+// 選商品時，若手機版抽屜打開則同步更新
+const _origSelectSym = selectSym;
+// （直接在 renderRp 最後呼叫即可，已透過 renderRp 同步）
+
+
+// ══════════════════════════════════════════
+// PWA Service Worker 註冊
+// ══════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    // 內嵌 SW 使用 Blob URL
+    const swCode = `
+const CACHE = 'agriwatch-v4';
+const ASSETS = [self.location.href];
+self.addEventListener('install', e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
+});
+self.addEventListener('fetch', e=>{
+  e.respondWith(
+    caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{
+      if(res && res.status===200){
+        const clone=res.clone();
+        caches.open(CACHE).then(c=>c.put(e.request,clone));
+      }
+      return res;
+    }).catch(()=>caches.match(e.request)))
+  );
+});
+`;
+    const blob = new Blob([swCode],{type:'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(()=>{});
+  });
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
